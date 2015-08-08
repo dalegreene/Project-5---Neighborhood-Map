@@ -2,6 +2,8 @@
 
 This is a map borrowed from Google's API that provides localities within the National Mall of Washington DC.
 
+To view the web page, click the index.html file within the main folder.
+
 There is a search box implemented to search areas within the map's coordinates.
 
 There are listed items on the right side of the map with pre-selected popular locations gathered from the Foursquare API.

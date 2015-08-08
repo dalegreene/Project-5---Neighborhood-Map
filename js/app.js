@@ -1,16 +1,25 @@
 function appViewModel() {
+// Alert if Google API is inaccesible
+try {
+  var dcLoc = new google.maps.LatLng(38.8900, -77.0236);
+}
+catch(err) {
+    alert("Unable to access Google API");
+}
+
+
   var self = this; 
   var map;
   var service;
   var infowindow;
   var lat = '';
   var lng = '';
-  var dcLoc = new google.maps.LatLng(38.8900, -77.0236);
+  //var dcLoc = new google.maps.LatLng(38.8900, -77.0236);
   var markersArray = [];  
   var $loc = $('#title');
 
   // Array for Knockout info
-  self.allPlaces = ko.observableArray([]);
+  self.allPlaces = ko.observableArray();
 
   // String for Foursquare info
   self.foursquareInfo = '';
@@ -34,7 +43,7 @@ function appViewModel() {
      dataType: "jsonp",
      success: function (response){
        var articleList = response[1];
-       for(i =0; i < articleList.length; i++){
+       for(i = 0, len = articleList.length; i < len; i++){
         articleStr = articleList[i];
         var url = 'http://en.wikipedia.org/wiki/' + articleStr;
         $loc.append('<p><a href="' + url + '">' + articleStr + '</a></p>');
@@ -62,13 +71,25 @@ function appViewModel() {
     var title = (document.getElementById('title'));
     map.controls[google.maps.ControlPosition.TOP_CENTER].push(title);
 
-    var searchBox = new google.maps.places.SearchBox(
-      (input));
+    var searchBox = new google.maps.places.SearchBox((input));
+    // Filters the results in the pre-populated list
+    $('#pac-input').keyup(function(){
+      var value = $(this).val().toLowerCase();
+      $('li').each(function() {
+        var check = $(this).text().toLowerCase();
+        if ($(this).text().toLowerCase().search(value) > -1) {
+            $(this).show();
+        }
+        else {
+          $(this).hide();
+        }
+      });
+    });
     google.maps.event.addListener(searchBox, 'places_changed', function() {
       var places = searchBox.getPlaces();
       clearOverlays();
       self.allPlaces.removeAll();
-      var bounds = new google.maps.LatLngBounds();  
+      var bounds = new google.maps.LatLngBounds();
 
 
       for(var i=0, place; i<10; i++){
@@ -87,7 +108,7 @@ function appViewModel() {
       var bounds = map.getBounds();
       searchBox.setBounds(bounds);
     });   
-    // Handles an event where Google Maps taks too long to load
+    // Handles an event where Google Maps takes too long to load
     var timer = window.setTimeout(failedToLoad, 5000);
     google.maps.event.addListener(map, 'tilesloaded', function() {
       window.clearTimeout(timer);
@@ -98,17 +119,26 @@ function appViewModel() {
     $('#map-canvas').html("Google Maps Failed to Load");
   }
 
-  // Function to pre-populate the map with place types; nearbySearch retuns up to 20 places
-  function getPlaces() {
-    var request = {
-      location: dcLoc,
-      radius: 600,
-      types: ['restaurant', 'bar', 'cafe', 'food']
-    };
+  function apiError() {
+    alert("Google API request failed!");
+  }
 
-    infowindow = new google.maps.InfoWindow();
-    service = new google.maps.places.PlacesService(map);
-    service.nearbySearch(request, callback);    
+  // Function to pre-populate the map with place types; nearbySearch returns up to 20 places
+  function getPlaces() {
+    if (!dcLoc){
+      apiError();
+    }
+    else {
+      var request = {
+        location: dcLoc,
+        radius: 600,
+        types: ['restaurant', 'bar', 'cafe', 'food']
+      };
+
+      infowindow = new google.maps.InfoWindow();
+      service = new google.maps.places.PlacesService(map);
+      service.nearbySearch(request, callback);
+    }
   }
 
   // Gets the callback from Google and creates a marker for each place
@@ -187,11 +217,18 @@ function appViewModel() {
         // Twitter
         var twitterId = venue.contact.twitter;
             if (twitterId !== null && twitterId !== undefined) {
-              self.foursquareInfo += 'twitter: @' +
+              self.foursquareInfo += 'Twitter: @' +
                   twitterId + '<br>';
             } else {
-              self.foursquareInfo += 'twitter: Not Found' + '<br>';
+              self.foursquareInfo += 'Twitter: Not Found' + '<br>';
             }
+      })
+      
+      // Alert if API request to Foursquare fails
+      .fail(function() {
+        alert("Unable to access Foursquare API");
+        self.foursquareInfo = 'Name: Not Found' + '<br>' + 'Phone: Not Found'
+        + '<br>' + 'Twitter: Not Found' + '<br>';
       });
   };  
  
@@ -247,5 +284,5 @@ function appViewModel() {
 }
 
 $(function(){
-ko.applyBindings(new appViewModel());
+  ko.applyBindings(new appViewModel());
 });
